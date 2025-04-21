@@ -1,0 +1,64 @@
+name: CI Pipeline - Cypress + SSH Deploy
+
+on:
+  push:
+    branches:
+      - main  # Cambiá si usás otra rama
+
+env:
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  REMOTE_USER: ec2-user
+  REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start app and run Cypress tests
+        run: |
+          npm run dev &
+          sleep 5
+          npx cypress run
+
+      - name: Deploy to Remote Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.REMOTE_HOST }}
+          username: ${{ env.REMOTE_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          script: |
+            # Asegurarse de que Git está instalado
+            if ! [ -x "$(command -v git)" ]; then
+              echo 'Instalando Git...'
+              sudo yum update -y
+              sudo yum install git -y
+            fi
+
+            # Clonar o actualizar el repositorio
+            cd /opt
+            if [ -d "/opt/appDir" ]; then
+              echo 'Actualizando el repo...'
+              cd appDir && git pull origin main
+            else
+              echo 'Clonando el repo...'
+              sudo git clone https://${{ env.GH_TOKEN }}@github.com/TU_USUARIO/TU_REPO.git appDir
+              cd appDir
+            fi
+
+            # Instalar dependencias y levantar app con PM2
+            npm install
+            pm2 delete all || true
+            pm2 start app.js
