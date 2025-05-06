@@ -3,7 +3,7 @@ name: CI Pipeline - Cypress + SSH Deploy
 on:
   push:
     branches:
-      - main  # Cambiá si usás otra rama
+      - main
 
 env:
   SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -40,25 +40,28 @@ jobs:
           username: ${{ env.REMOTE_USER }}
           key: ${{ env.SSH_PRIVATE_KEY }}
           script: |
-            # Asegurarse de que Git está instalado
-            if ! [ -x "$(command -v git)" ]; then
-              echo 'Instalando Git...'
-              sudo yum update -y
+            sudo yum update -y
+
+            # Instalar git y pm2 si no están
+            if ! command -v git &> /dev/null; then
               sudo yum install git -y
             fi
 
-            # Clonar o actualizar el repositorio
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
+
+            # Clonar o actualizar el repo
             cd /opt
-            if [ -d "/opt/appDir" ]; then
-              echo 'Actualizando el repo...'
+            if [ -d "appDir" ]; then
               cd appDir && git pull origin main
             else
-              echo 'Clonando el repo...'
-              sudo git clone https://${{ env.GH_TOKEN }}@github.com/TU_USUARIO/TU_REPO.git appDir
+              git clone https://${{ env.GH_TOKEN }}@github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
               cd appDir
             fi
 
-            # Instalar dependencias y levantar app con PM2
+            # Instalar dependencias y reiniciar app
             npm install
             pm2 delete all || true
-            pm2 start app.js
+            pm2 start app.js --name users-api
+            pm2 save
