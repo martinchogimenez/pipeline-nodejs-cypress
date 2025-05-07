@@ -52,6 +52,14 @@ resource "aws_security_group_rule" "custom_ingress" {
 }
 
 # Salida IP pública
-output "public_ip_dev" {
-  value = aws_instance.users_dev_instance.public_ip
-}
+egress {
+    description = "All outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "web_sg"
+  }
