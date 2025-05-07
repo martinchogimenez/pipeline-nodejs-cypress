@@ -1,6 +1,6 @@
 # Configuración del proveedor AWS
 provider "aws" {
-  region = "us-east-1"
+  region = "sa-east-1"
 }
 
 # Crear un nuevo grupo de seguridad
@@ -11,9 +11,9 @@ resource "aws_security_group" "instance_security_group" {
 
 # Definición de la instancia EC2
 resource "aws_instance" "users_dev_instance" {
-  ami           = "ami-0a3c3a20c09d6f377" # AMI de Amazon Linux
+  ami           = "ami-0e992fa13838f3bf6" # AMI de Amazon Linux
   instance_type = "t2.micro"
-  key_name      = "PEM_USERS_DEV" # Actualizá esto si tenés otro nombre de clave
+  key_name      = "PEM_USERS_DEV"
 
   # Asociar la instancia con el grupo de seguridad recién creado
   vpc_security_group_ids = [aws_security_group.instance_security_group.id]
