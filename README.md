@@ -46,7 +46,7 @@ Una vez instaladas las dependencias y configurado el archivo `.env`, puedes corr
 npm run dev
 ```
 
-Visita: [http://localhost:3000](http://localhost:3000)
+Visita: [http://localhost:3000]
 
 ### 🧪 5. Correr los tests de Cypress
 
