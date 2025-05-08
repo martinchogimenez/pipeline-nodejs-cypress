@@ -35,10 +35,10 @@ jobs:
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           rm -rf appDir
-          git clone ${{ secrets.REPO_URL }} appDir
+          git clone https://github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
           cd appDir
           git checkout main
 
