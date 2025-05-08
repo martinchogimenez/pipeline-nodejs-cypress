@@ -1,74 +1,58 @@
-name: CI Pipeline - Cypress + SSH Deploy
+name: Node.js CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
 
-env:
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-  REMOTE_USER: ec2-user
-  REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Use Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
+    - name: Use Node.js 16
+      uses: actions/setup-node@v4
+      with:
+        node-version: 16
 
-      - name: Install dependencies
-        run: npm install
+    - name: Install dependencies
+      run: npm install
 
-      - name: Start app and run Cypress tests
-        run: |
-          npm run dev &
-          sleep 5
-          npx cypress run
+    - name: Run Cypress tests
+      run: npx cypress run
 
-      - name: Deploy to Remote Server via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.REMOTE_HOST }}
-          username: ${{ env.REMOTE_USER }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
-          script: |
-            sudo yum update -y
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          rm -rf appDir
+          git clone ${{ secrets.REPO_URL }} appDir
+          cd appDir
+          git checkout main
+          
+          if ! command -v node &> /dev/null; then
+            echo "Node.js no está instalado. Instalando..."
+            curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
+            sudo yum install -y nodejs
+          else
+            echo "Node.js ya está instalado."
+          fi
 
-            # Instalar Node.js 18.x (si no está)
-            if ! command -v node &> /dev/null; then
-              curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-              sudo yum install -y nodejs
-            fi
+          npm install
 
-            # Instalar git si no está
-            if ! command -v git &> /dev/null; then
-              sudo yum install git -y
-            fi
+          if ! command -v pm2 &> /dev/null; then
+            echo "PM2 no está instalado. Instalando..."
+            sudo npm install -g pm2
+          else
+            echo "PM2 ya está instalado."
+          fi
 
-            # Instalar pm2 si no está
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-
-            # Clonar o actualizar el repo
-            cd /opt
-            if [ -d "appDir" ]; then
-              cd appDir && git pull origin main
-            else
-              git clone https://${{ env.GH_TOKEN }}@github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
-              cd appDir
-            fi
-
-            # Instalar dependencias y reiniciar app
-            npm install
-            pm2 delete all || true
-            pm2 start src/index.js --name users-api
-            pm2 save
+          pm2 stop all || true
+          pm2 start index.js --name app
+          pm2 save
