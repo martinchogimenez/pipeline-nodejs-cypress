@@ -21,6 +21,12 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Start app in background
+      run: |
+        npm install -g wait-on
+        npm start &  # Levanta el server en segundo plano
+        wait-on http://localhost:3000
+
     - name: Run Cypress tests
       run: npx cypress run
 
@@ -35,7 +41,7 @@ jobs:
           git clone ${{ secrets.REPO_URL }} appDir
           cd appDir
           git checkout main
-          
+
           if ! command -v node &> /dev/null; then
             echo "Node.js no está instalado. Instalando..."
             curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
