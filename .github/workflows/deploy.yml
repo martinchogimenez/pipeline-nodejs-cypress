@@ -37,21 +37,33 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          rm -rf appDir
+          echo "Iniciando despliegue remoto..."
+
+          echo "Eliminando versión anterior de la app..."
+          rm -rf appDir && mkdir appDir
+
+          echo "Clonando repositorio..."
           git clone https://github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
           cd appDir
-          git checkout main
 
+          echo "Verificando Node.js..."
           if ! command -v node &> /dev/null; then
             echo "Node.js no está instalado. Instalando..."
-            curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
-            sudo yum install -y nodejs
+            if [ -f /etc/debian_version ]; then
+              curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            elif [ -f /etc/redhat-release ]; then
+              curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
+              sudo yum install -y nodejs
+            fi
           else
             echo "Node.js ya está instalado."
           fi
 
+          echo "Instalando dependencias..."
           npm install
 
+          echo "Verificando PM2..."
           if ! command -v pm2 &> /dev/null; then
             echo "PM2 no está instalado. Instalando..."
             sudo npm install -g pm2
@@ -59,6 +71,9 @@ jobs:
             echo "PM2 ya está instalado."
           fi
 
+          echo "Reiniciando aplicación con PM2..."
           pm2 stop all || true
           pm2 start index.js --name app
           pm2 save
+
+          echo "Despliegue finalizado con éxito."
