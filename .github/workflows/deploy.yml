@@ -42,11 +42,18 @@ jobs:
           script: |
             sudo yum update -y
 
-            # Instalar git y pm2 si no están
+            # Instalar Node.js 18.x (si no está)
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+              sudo yum install -y nodejs
+            fi
+
+            # Instalar git si no está
             if ! command -v git &> /dev/null; then
               sudo yum install git -y
             fi
 
+            # Instalar pm2 si no está
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
             fi
@@ -63,5 +70,5 @@ jobs:
             # Instalar dependencias y reiniciar app
             npm install
             pm2 delete all || true
-            pm2 start app.js --name users-api
+            pm2 start src/index.js --name users-api
             pm2 save
