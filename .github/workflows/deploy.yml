@@ -43,7 +43,7 @@ jobs:
           rm -rf appDir && mkdir appDir
 
           echo "Clonando repositorio..."
-          git clone https://github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
+          git clone https://${{ secrets.GH_TOKEN }}@github.com/martinchogimenez/pipeline-nodejs-cypress.git appDir
           cd appDir
 
           echo "Verificando Node.js..."
